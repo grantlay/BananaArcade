@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Settings — Banana Arcade</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="icon" type="image/png" href="assets/logo.svg">
+  <script defer src="js/plays.js"></script>
+
+  <style>
+    /* Page uses the site’s main scroll; no inner scrollers */
+    .settings-wrap { max-width: 1040px; margin: 0 auto; padding: 28px; }
+    .settings-header { display:flex; align-items:center; gap:12px; margin-bottom: 10px; }
+    .settings-sub { margin: 0 0 20px; opacity:.75; }
+
+    /* Section */
+    .settings-section { margin: 26px 0 16px; }
+    .settings-section h3 { margin: 0 0 10px; font-size: 1rem; opacity:.85; }
+
+    /* Rows */
+    .row { 
+      display:flex; gap:16px; align-items:center; justify-content:space-between;
+      padding:14px 16px; background:var(--panel, #0f1320); border-radius:14px;
+      box-shadow: var(--shadow, 0 8px 24px rgba(0,0,0,.25));
+      margin-bottom: 12px;
+    }
+    .row__left { min-width: 220px; }
+    .row__label { font-weight:800; }
+    .row__desc { font-size:.86rem; opacity:.7; margin-top:4px; }
+    .row__right { display:flex; gap:12px; align-items:center; flex-wrap: wrap; }
+
+    /* Preset cards */
+    .preset-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px; }
+    .preset-card {
+      display:flex; align-items:center; gap:10px; padding:12px 14px;
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:12px; cursor:pointer; transition: transform .15s ease, border-color .15s ease;
+      position: relative;
+    }
+    .preset-card:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.25); }
+    .preset-card input { display:none; }
+    .preset-card.is-active { border-color:#7ed957; box-shadow: 0 0 0 2px rgba(126,217,87,.25) inset; }
+
+    .preset-card.is-locked { opacity:.85; }
+    .preset-card.is-locked::after{
+      content:"🔒"; position:absolute; top:8px; right:10px; font-size:14px; opacity:.9;
+    }
+
+    .preset-icon {
+      width:28px; height:28px; border-radius:6px; background:#202536; display:inline-flex; align-items:center; justify-content:center;
+      overflow:hidden;
+    }
+    .preset-icon img { width:100%; height:100%; object-fit:cover; }
+    .preset-meta { display:flex; flex-direction:column; }
+    .preset-title { font-weight:800; }
+    .preset-note { font-size:.8rem; opacity:.7; }
+
+    /* Inputs */
+    .text { 
+      background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
+      padding:10px 12px; border-radius:10px; color:inherit; outline:none; min-width: 260px;
+    }
+    .text:focus { border-color: rgba(126,217,87,.65); box-shadow: 0 0 0 3px rgba(126,217,87,.2); }
+    .text[disabled] { opacity:.6; cursor:not-allowed; }
+    .wide  { min-width: 420px; max-width: 65vw; }
+    .med   { min-width: 300px; max-width: 50vw; }
+
+    /* Buttons */
+    .settings-actions { margin-top:18px; display:flex; gap:10px; }
+    .btn { cursor:pointer; padding:11px 14px; border-radius:10px; border:0; }
+    .btn--primary { background:linear-gradient(135deg,#7ed957,#39c0ed); color:#0b0f1a; font-weight:800; }
+    .btn--ghost { background:transparent; color:inherit; border:1px solid rgba(255,255,255,.18); }
+
+    /* Subtle code style */
+    code { background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); padding:2px 6px; border-radius:6px; }
+  </style>
+  <script defer src="js/site-settings.js"></script>
+  <script defer src="js/settings.js"></script>
+</head>
+<body>
+  <!-- reuse your existing nav (with white gear elsewhere) -->
+  <header class="nav" role="banner">
+    <a class="nav__brand" href="index.html" aria-label="Banana Arcade home">
+      <img src="assets/logo.svg" alt="" class="nav__logo" />
+      <span class="nav__title">Banana Arcade</span>
+    </a>
+    <div class="nav__search">
+      <input id="searchInput" type="search" placeholder="Search games…" aria-label="Search games" autocomplete="off" />
+      <div id="searchResults" class="nav__search-dropdown" role="listbox" aria-label="Search results"></div>
+    </div>
+    <nav class="nav__menu" aria-label="Primary">
+      <a href="index.html#home" class="nav__link">Home</a>
+      <a href="banana-bread.html" class="nav__link">Banana Bread</a>
+      <a href="index.html#games" class="nav__link">All Games</a>
+      <a href="index.html#popular" class="nav__link">Popular</a>
+      <a href="index.html#cats" class="nav__link">Categories</a>
+      <a href="index.html#credits" class="nav__link">Credits</a>
+<a href="settings.html" class="nav__link" title="Settings" aria-label="Settings">
+  <img src="assets/gear.png" alt="" class="icon-gear" />
+</a>
+
+    </nav>
+  </header>
+
+  <main class="settings-wrap">
+    <div class="settings-header">
+      <h1>Settings</h1>
+    </div>
+    <p class="settings-sub muted">Customize how Banana Arcade looks and behaves. Changes apply across the whole site.</p>
+
+    <!-- Presets -->
+    <section class="settings-section">
+      <h3>Disguise / Branding Presets</h3>
+      <div class="preset-grid" id="presetGrid">
+        <!-- Custom (NEW, first) -->
+        <label class="preset-card" data-preset="custom" title="Custom: choose your own name/icon">
+          <input type="radio" name="preset" value="custom">
+          <span class="preset-icon" aria-hidden="true">
+            <!-- question-mark icon -->
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff">
+              <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm.01 17c-.83 0-1.5-.67-1.5-1.5S11.17 16 12 16s1.5.67 1.5 1.5S12.83 19 12 19zm2.07-7.75-.9.92c-.66.69-1.17 1.28-1.17 2.33h-1.5v-.5c0-1.02.51-1.99 1.32-2.81l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-1.93 1.57-3.5 3.5-3.5S15 6.07 15 8c0 .88-.36 1.68-.92 2.25z"/>
+            </svg>
+          </span>
+          <span class="preset-meta">
+            <span class="preset-title">Custom</span>
+            <span class="preset-note muted">Use your own title & icon</span>
+          </span>
+        </label>
+
+        <!-- Normal (LOCKED) -->
+        <label class="preset-card is-locked" data-preset="none" title="Normal (locked): Banana Arcade defaults">
+          <input type="radio" name="preset" value="none">
+          <span class="preset-icon">
+            <img src="assets/logo.svg" alt="">
+          </span>
+          <span class="preset-meta">
+            <span class="preset-title">Normal</span>
+            <span class="preset-note muted">Use <strong>Banana Arcade</strong> branding (locked)</span>
+          </span>
+        </label>
+
+        <!-- Google Classroom -->
+        <label class="preset-card" data-preset="gclassroom" title="Disguise as Google Classroom">
+          <input type="radio" name="preset" value="gclassroom">
+          <span class="preset-icon"><img src="assets/classroom.ico" alt=""></span>
+          <span class="preset-meta">
+            <span class="preset-title">Google Classroom</span>
+            <span class="preset-note muted">Tab name <strong>Home</strong>, Classroom icon</span>
+          </span>
+        </label>
+      </div>
+    </section>
+
+    <!-- Title + Favicon -->
+    <section class="settings-section">
+      <h3>Custom Tab Title & Icon</h3>
+      <div class="row">
+        <div class="row__left">
+          <div class="row__label">Tab Name</div>
+          <div class="row__desc">Sets the browser tab title globally.</div>
+        </div>
+        <div class="row__right">
+          <input id="tabTitle" class="text med" type="text" placeholder="e.g., Home or Classroom">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="row__left">
+          <div class="row__label">Tab Icon (favicon)</div>
+          <div class="row__desc">Paste a direct image address (.png or .ico), e.g. <code>https://example.com/icon.png</code></div>
+        </div>
+        <div class="row__right">
+          <input id="tabIcon" class="text wide" type="url" placeholder="https://example.com/icon.png">
+        </div>
+      </div>
+    </section>
+
+    <!-- Special key -->
+    <section class="settings-section">
+      <h3>Panic / Special Key</h3>
+      <div class="row">
+        <div class="row__left">
+          <div class="row__label">Enable Special Key</div>
+          <div class="row__desc">Press the key to open a safe URL in a new tab.</div>
+        </div>
+        <div class="row__right">
+          <label class="preset"><input id="specialEnabled" type="checkbox"> <span class="pill">Enabled</span></label>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="row__left">
+          <div class="row__label">Special Key</div>
+          <div class="row__desc">Exact key to listen for (default <code>`</code>).</div>
+        </div>
+        <div class="row__right">
+          <input id="specialKey" class="text med" type="text" maxlength="2" placeholder="`">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="row__left">
+          <div class="row__label">Special URL</div>
+          <div class="row__desc">The URL to open when pressing the key.</div>
+        </div>
+        <div class="row__right">
+          <input id="specialUrl" class="text wide" type="url" placeholder="https://classroom.google.com">
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick links -->
+    <section class="settings-section">
+      <h3>Quick Links</h3>
+      <div class="row">
+        <div class="row__left">
+          <div class="row__label">Community & Tools</div>
+          <div class="row__desc">The former Extras links, now here.</div>
+        </div>
+        <div class="row__right">
+        <a class="btn btn--ghost" href="https://forms.gle/dabivmVhci9reyQ1A" target="_blank" rel="noopener noreferrer">Submit a Game</a>
+                <a class="btn btn--ghost" href="https://forms.gle/iRpixu1TzM8wK2vJ7" target="_blank" rel="noopener noreferrer">Report a Bug</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="settings-actions">
+      <button id="saveBtn" class="btn btn--primary">Save</button>
+      <button id="resetBtn" class="btn btn--ghost">Reset</button>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Play — Banana Arcade</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="icon" type="image/x-icon" href="assets/logo.svg">
+<script defer src="js/plays.js"></script>     <!-- must be before -->
+<script defer src="js/data.js"></script>
+<script defer src="js/game.js"></script>
+
+
+
+  <script src="js/site-settings.js" defer></script>
+
+  <style>
+    .iconbtn {
+      background: none;
+      border: none;
+      padding: 0.5rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      fill: #fff;
+      transition: background 0.2s;
+    }
+    .iconbtn:hover {
+      background: rgba(255,255,255,0.1);
+      border-radius: 6px;
+    }
+    .iconbtn svg {
+      width: 24px;
+      height: 24px;
+    }
+  </style>
+</head>
+
+<body class="viewer">
+  <!-- SAME NAVBAR HERE -->
+  <header class="nav" role="banner">
+    <a class="nav__brand" href="index.html" aria-label="Banana Arcade home">
+      <img src="assets/logo.svg" alt="" class="nav__logo" />
+      <span class="nav__title">Banana Arcade</span>
+    </a>
+
+    <div class="nav__search">
+      <input id="searchInput" type="search" placeholder="Search games…" aria-label="Search games" autocomplete="off" />
+      <div id="searchResults" class="nav__search-dropdown" role="listbox" aria-label="Search results"></div>
+    </div>
+
+    <nav class="nav__menu" aria-label="Primary">
+      <a href="index.html#home"    class="nav__link">Home</a>
+      <script defer src="js/plays.js"></script>
+
+      <a href="banana-bread.html" class="nav__link">Banana Bread</a>
+      <a href="index.html#games"   class="nav__link">All Games</a>
+      <a href="index.html#popular" class="nav__link">Popular</a>
+      <a href="index.html#cats"    class="nav__link">Categories</a>
+      <a href="index.html#credits" class="nav__link">Credits</a>
+<a href="settings.html" class="nav__link" title="Settings" aria-label="Settings">
+  <img src="assets/gear.png" alt="" class="icon-gear" />
+</a>
+
+
+
+    </nav>
+  </header>
+
+  <main class="viewer__main">
+    <!-- Big game frame -->
+    <div class="viewer__frame-wrap">
+      <iframe id="gFrame" title="Game" loading="eager" referrerpolicy="no-referrer" allow="autoplay; fullscreen" allowfullscreen></iframe>
+      <div class="viewer__frame-skeleton" aria-hidden="true">Loading…</div>
+    </div>
+
+    <!-- Bottom dock with logo/details + icon buttons -->
+    <div class="viewer__dock" role="toolbar" aria-label="Game controls">
+      <div class="dock__left">
+        <img id="dockThumb" class="dock__thumb" alt="Game Thumbnail" />
+        <div class="dock__meta">
+          <div class="dock__title" id="dockTitle">Loading…</div>
+          <div class="dock__creator" id="dockCreator"></div>
+        </div>
+      </div>
+      <div class="dock__right">
+        <button class="iconbtn" id="btnBack" title="Back">
+          <svg viewBox="0 0 24 24"><path d="M15.5 5.5 9 12l6.5 6.5-1.5 1.5L6 12l8-8 1.5 1.5z"/></svg>
+        </button>
+  
+        <button class="iconbtn" id="btnReload" title="Reload">
+          <svg viewBox="0 0 24 24"><path d="M12 6V3l4 4-4 4V8a4 4 0 1 0 4 4h2a6 6 0 1 1-6-6z"/></svg>
+        </button>
+        <button class="iconbtn" id="btnFull" title="Fullscreen">
+          <svg viewBox="0 0 24 24"><path d="M7 3H3v4h2V5h2V3zm12 0h-4v2h2v2h2V3zM5 17H3v4h4v-2H5v-2zm14 0h-2v2h-2v2h4v-4z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Related -->
+    <aside class="viewer__aside">
+      <section class="panel">
+        <h2>You may also like</h2>
+        <div id="gRelated" class="rail"></div>
+      </section>
+    </aside>
+  </main>
+
+<script>
+  const btnMute = document.getElementById("btnMute");
+  const iconMute = document.getElementById("iconMute");
+  const gFrame   = document.getElementById("gFrame");
+
+  let isMuted = localStorage.getItem('ba_muted') === '1';
+
+  function updateIcon() {
+    iconMute.innerHTML = isMuted
+      ? `<path d="M16.5 12l4.5 4.5-1.5 1.5L15 13.5l-4.5 4.5H7v-6H3V9h4V3h4.5L15 7.5 20.5 3 22 4.5 16.5 10z"/>`
+      : `<path d="M7 9v6h4l5 5V4l-5 5H7z"/>`;
+  }
+
+  function sendMute() {
+    try { gFrame.contentWindow.postMessage({ type: "ba-mute", muted: isMuted }, "*"); } catch {}
+  }
+
+  window.addEventListener('load', () => { updateIcon(); sendMute(); });
+  gFrame.addEventListener('load', sendMute);
+
+  btnMute.addEventListener("click", () => {
+    isMuted = !isMuted;
+    localStorage.setItem('ba_muted', isMuted ? '1' : '0');
+    updateIcon();
+    sendMute();
+  });
+</script>
+
+
+
+
+
+
+</body>
+</html>

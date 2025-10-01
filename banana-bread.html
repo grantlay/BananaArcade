@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Banana Bread — Banana Arcade</title>
+
+    <link rel="icon" type="image/x-icon" href="assets/logo.svg">
+  <link rel="stylesheet" href="css/style.css" />
+  <!-- Data + components (same as index) -->
+  <script defer src="js/data.js"></script>
+  <script defer src="js/components.js"></script>
+  <!-- This page's controller -->
+  <script defer src="js/bread.js"></script>
+  <script src="js/site-settings.js" defer></script>
+  <script defer src="js/plays.js"></script>
+
+
+</head>
+<body>
+  <!-- NAV (same markup/classes as index) -->
+  <header class="nav" role="banner">
+    <a class="nav__brand" href="index.html" aria-label="Banana Arcade home">
+      <img src="assets/logo.svg" alt="" class="nav__logo" />
+      <span class="nav__title">Banana Arcade</span>
+    </a>
+
+    <div class="nav__search">
+      <input id="searchInput" type="search" placeholder="Search games…" aria-label="Search games" autocomplete="off" />
+      <div id="searchResults" class="nav__search-dropdown" role="listbox" aria-label="Search results"></div>
+    </div>
+
+    <nav class="nav__menu" aria-label="Primary">
+      <a href="index.html#home"    class="nav__link">Home</a>
+      <a href="banana-bread.html"  class="nav__link is-active">Banana Bread</a>
+      <a href="index.html#games"   class="nav__link">All Games</a>
+      <a href="index.html#popular" class="nav__link">Popular</a>
+      <a href="index.html#cats"    class="nav__link">Categories</a>
+      <a href="index.html#credits" class="nav__link">Credits</a>
+<a href="settings.html" class="nav__link" title="Settings" aria-label="Settings">
+  <img src="assets/gear.png" alt="" class="icon-gear" />
+</a>
+
+
+
+    </nav>
+  </header>
+
+  <!-- HERO (identical structure/classes as index hero) -->
+  <section class="hero">
+    <div class="hero__bg"></div>
+    <div class="hero__inner">
+      <div>
+        <div class="eyebrow">BAKED IN-HOUSE</div>
+        <h1 class="hero__title">All. New. Experiences</h1>
+        <p class="hero__sub">
+          Banana Bread is a variety of handmade games customly coded by our developers at <strong>Banana Arcade</strong>.
+          These games are pure HTML, so they’re way more efficient and <strong>unblockable.</strong>
+        </p>
+        <div class="hero__cta">
+          <a href="#all" class="btn btn--ghost">Browse All</a>
+          <button class="btn btn--primary" id="playFeatured">Play Featured</button>
+        </div>
+      </div>
+
+      <!-- featured card on the right (same id/class as index) -->
+      <div class="hero__right">
+        <div id="heroFeaturedCard"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAGE CONTENT (same container id as index) -->
+  <main id="content" class="page"></main>
+
+  <!-- FOOTER (same look; year filled by bread.js) -->
+  <footer class="footer">
+    <div class="footer__grid">
+      <div>
+        <a href="index.html" class="nav__brand" style="gap:.5rem">
+          <img src="assets/logo.svg" alt="" class="footer__logo" />
+          <span>Banana Arcade</span>
+        </a>
+        <p class="muted">© <span id="year"></span> Banana Arcade — Play More, Stress Less.</p>
+      </div>
+      <div>
+        <h3>About</h3>
+        <ul>
+          <li><a href="index.html#credits">Team &amp; Credits</a></li>
+          <li><a href="index.html#extras">Extras</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3>Categories</h3>
+        <ul id="footerCats"></ul>
+        <p style="margin-top:.5rem">
+          <a href="index.html#cats" class="nav__link" style="padding:0">View all categories →</a>
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- keep Bread page light: Enter in search redirects to Home’s full search -->
+  <script>
+    (function () {
+      const input = document.getElementById('searchInput');
+      if (!input) return;
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const q = input.value.trim();
+          if (q) location.href = `index.html?q=${encodeURIComponent(q)}#home`;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fruit Drop Merge Game</title>
+  <!-- 🎨 Electrolize Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Electrolize&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(145deg, #f5f6fa, #dcdde1);
+      font-family: 'Electrolize', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      overflow: hidden;
+    }
+    #container {
+      display: flex;
+      gap: 20px;
+      position: relative;
+      z-index: 1;
+    }
+    canvas {
+      background: linear-gradient(180deg, #ecf0f1, #bdc3c7);
+      border: none;
+      border-radius: 40px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2), inset 0 4px 10px rgba(255,255,255,0.4);
+    }
+    #scoreboard {
+      background: white;
+      border-radius: 20px;
+      padding: 15px;
+      width: 190px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+    }
+    .scoreItem {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 16px;
+    }
+    .scoreItem img {
+      width: 24px;
+      height: 24px;
+    }
+    #points {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 4px;
+      text-align: center;
+      color: #2c3e50;
+    }
+    #mergeList {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 420px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+    #rainbowBlast {
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 200%;
+      height: 100%;
+      background: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet);
+      opacity: 0.7;
+      pointer-events: none;
+      transition: transform 2s ease, opacity 2s ease;
+      transform: translateX(-100%);
+      z-index: 2;
+    }
+    #muteBtn {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: #2c3e50;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.3s;
+    }
+    #muteBtn:hover { background: #34495e; }
+  </style>
+</head>
+<body>
+  <div id="rainbowBlast"></div>
+  <div id="container">
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+    <div id="scoreboard">
+      <div id="points">Points: 0</div>
+      <div id="mergeList"></div>
+      <button id="muteBtn">🔊 Mute</button>
+    </div>
+  </div>
+
+  <!-- ✅ GAME SCRIPT GOES LAST -->
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const scoreboard = document.getElementById("scoreboard");
+    const rainbowBlast = document.getElementById("rainbowBlast");
+    const pointsDisplay = document.getElementById("points");
+    const muteBtn = document.getElementById("muteBtn");
+    const mergeList = document.getElementById("mergeList");
+
+    // 🎵 Background music (autoplay-safe: starts after first interaction)
+    const bgMusic = new Audio("https://github.com/TMATS8/isssmerge/raw/refs/heads/main/background.mp3");
+    bgMusic.loop = true;
+    bgMusic.volume = 0.4;
+
+    // 🔊 Sounds
+    const mergeSound = new Audio("https://github.com/TMATS8/isssmerge/raw/refs/heads/main/pop-402323.mp3");
+    const explosionSound = new Audio("https://github.com/TMATS8/isssmerge/raw/refs/heads/main/haha.ogg");
+    const discoverSounds = [
+      new Audio("https://github.com/TMATS8/isssmerge/raw/refs/heads/main/sui.ogg"),
+      new Audio("https://github.com/TMATS8/isssmerge/raw/refs/heads/main/guesswhat.ogg"),
+      new Audio("https://github.com/TMATS8/isssmerge/raw/refs/heads/main/serious.ogg")
+    ];
+    let lastDiscoverIndex = -1;
+
+    // 🎚️ Global mute toggle
+    let isMuted = false;
+    const allSounds = [bgMusic, mergeSound, explosionSound, ...discoverSounds];
+
+    muteBtn.addEventListener("click", () => {
+      isMuted = !isMuted;
+      allSounds.forEach(sound => sound.muted = isMuted);
+      muteBtn.textContent = isMuted ? "🔈 Unmute" : "🔊 Mute";
+    });
+
+    // 🎮 Start music only after first interaction
+    function startMusicOnce() {
+      bgMusic.play().catch(err => console.warn("Autoplay blocked:", err));
+      document.removeEventListener("keydown", startMusicOnce);
+      document.removeEventListener("click", startMusicOnce);
+      document.removeEventListener("touchstart", startMusicOnce, { passive: true });
+    }
+    document.addEventListener("keydown", startMusicOnce);
+    document.addEventListener("click", startMusicOnce);
+    document.addEventListener("touchstart", startMusicOnce, { passive: true });
+
+    // ========= Confetti =========
+    let confetti = [];
+    class ConfettiParticle {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.size = Math.random() * 6 + 4;
+        this.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
+        this.dx = (Math.random() - 0.5) * 8;
+        this.dy = Math.random() * -10;
+        this.rotation = Math.random() * Math.PI;
+        this.rotationSpeed = (Math.random() - 0.5) * 0.2;
+        this.alpha = 1;
+      }
+      update() {
+        this.x += this.dx;
+        this.y += this.dy;
+        this.dy += 0.3;
+        this.rotation += this.rotationSpeed;
+        this.alpha -= 0.01;
+        this.draw();
+      }
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
+        ctx.restore();
+      }
+    }
+
+    // ========= Fruits =========
+    const fruitImages = [];
+    const fruitSizes = [20, 28, 36, 46, 58, 72, 90, 110, 130, 160];
+    const fruitSources = [
+      "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T205900.543.png?raw=true",
+      "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T205824.999.png?raw=true",
+      "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T205548.515.png?raw=true",
+      "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T205252.616.png?raw=true",
+      "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T205340.875.png?raw=true",
+      "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T204539.278.png?raw=true",
+      "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T205501.717.png?raw=true",
+      "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T205717.038.png?raw=true",
+      "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T213756.346.png?raw=true",
+      "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T214102.208.png?raw=true"
+    ];
+    fruitSources.forEach((src, i) => {
+      const img = new Image();
+      img.src = src;
+      fruitImages[i] = img;
+    });
+
+    class Fruit {
+      constructor(x, y, level) {
+        this.x = x;
+        this.y = y;
+        this.level = level;
+        this.size = fruitSizes[level];
+        this.dy = 0;
+        this.dx = 0;
+        this.rotation = 0;
+        this.animationScale = 1;
+        this.lightEffect = 0;
+        this.alpha = 1;
+        this.exploding = false;
+      }
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        ctx.scale(this.animationScale, this.animationScale);
+        ctx.globalAlpha = this.alpha;
+
+        if (this.lightEffect > 0) {
+          ctx.beginPath();
+          ctx.arc(0, 0, this.size * 1.5, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(255, 255, 0, ${this.lightEffect})`;
+          ctx.lineWidth = 5;
+          ctx.stroke();
+          this.lightEffect -= 0.02;
+        }
+
+        const img = fruitImages[this.level];
+        if (img && img.complete) {
+          ctx.drawImage(img, -this.size, -this.size, this.size * 2, this.size * 2);
+        }
+        ctx.restore();
+
+        if (this.animationScale > 1) {
+          this.animationScale -= 0.05;
+          if (this.animationScale < 1) this.animationScale = 1;
+        }
+      }
+      update() {
+        if (!this.exploding) {
+          this.dy += 0.8;
+          this.y += this.dy;
+          this.x += this.dx;
+          this.rotation += this.dx / this.size;
+
+          if (this.y + this.size > canvas.height) {
+            this.y = canvas.height - this.size;
+            this.dy = 0;
+          }
+          if (this.x - this.size < 0) { this.x = this.size; this.dx *= -0.5; }
+          if (this.x + this.size > canvas.width) { this.x = canvas.width - this.size; this.dx *= -0.5; }
+
+          // ✅ Fruit-to-fruit collisions
+          for (let other of fruits) {
+            if (other !== this && !other.exploding) {
+              let dx = this.x - other.x;
+              let dy = this.y - other.y;
+              let dist = Math.sqrt(dx * dx + dy * dy);
+              let minDist = this.size + other.size;
+              if (dist < minDist) {
+                let angle = Math.atan2(dy, dx);
+                let overlap = minDist - dist;
+                let moveX = Math.cos(angle) * (overlap / 2);
+                let moveY = Math.sin(angle) * (overlap / 2);
+
+                this.x += moveX;
+                this.y += moveY;
+                other.x -= moveX;
+                other.y -= moveY;
+
+                this.dx += Math.cos(angle) * 0.3;
+                other.dx -= Math.cos(angle) * 0.3;
+
+                this.dy *= 0.7;
+                other.dy *= 0.7;
+              }
+            }
+          }
+        } else {
+          // 🔴 Explosion mode
+          this.x += this.dx;
+          this.y += this.dy;
+          this.dy += 0.5;
+          this.rotation += 0.2;
+          this.alpha -= 0.02;
+        }
+        this.draw();
+      }
+    }
+
+    // ========= Game State =========
+    let fruits = [];
+    let currentFruit = new Fruit(canvas.width / 2, 50, 0);
+    let mergeCounts = new Array(fruitSizes.length).fill(0);
+    let lastSpawnTime = 0;
+    const spawnCooldown = 500;
+    let points = 0;
+    let discoveredLevels = new Set();
+
+    function spawnFruit() {
+      currentFruit = new Fruit(canvas.width / 2, 50, Math.floor(Math.random() * 3));
+    }
+
+    function mergeFruits() {
+      for (let i = 0; i < fruits.length; i++) {
+        for (let j = i + 1; j < fruits.length; j++) {
+          let f1 = fruits[i];
+          let f2 = fruits[j];
+          let dx = f1.x - f2.x;
+          let dy = f1.y - f2.y;
+          let dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < f1.size + f2.size && f1.level === f2.level) {
+            fruits.splice(j, 1);
+            f1.level = Math.min(fruitSizes.length - 1, f1.level + 1);
+            f1.size = fruitSizes[f1.level];
+            f1.animationScale = 1.5;
+            mergeCounts[f1.level]++;
+
+            // SFX
+            mergeSound.currentTime = 0;
+            mergeSound.play().catch(()=>{});
+
+            // First-time discovery SFX + light ring
+            if (!discoveredLevels.has(f1.level)) {
+              discoveredLevels.add(f1.level);
+              let randIndex;
+              do { randIndex = Math.floor(Math.random() * discoverSounds.length); }
+              while (randIndex === lastDiscoverIndex);
+              lastDiscoverIndex = randIndex;
+              const randSound = discoverSounds[randIndex];
+              randSound.currentTime = 0;
+              randSound.play().catch(()=>{});
+              f1.lightEffect = 1;
+            }
+
+            // Max level → blast + confetti + points + reset
+            if (f1.level === fruitSizes.length - 1) {
+              triggerRainbowBlast();
+              explosionSound.currentTime = 0;
+              explosionSound.play().catch(()=>{});
+              spawnConfetti();
+              points += 100;
+              updatePoints();
+              explodeBoard();
+            }
+
+            updateScoreboard();
+            return; // handle one merge per frame to avoid chain issues
+          }
+        }
+      }
+    }
+
+    function updateScoreboard() {
+      // Only update the list section (don’t overwrite the mute button/points)
+      mergeList.innerHTML = "";
+      mergeCounts.forEach((count, i) => {
+        if (count > 0) {
+          const div = document.createElement("div");
+          div.className = "scoreItem";
+          const img = document.createElement("img");
+          img.src = fruitSources[i];
+          img.alt = "fruit";
+          div.appendChild(img);
+          div.appendChild(document.createTextNode("x " + count));
+          mergeList.appendChild(div);
+        }
+      });
+    }
+
+    function updatePoints() {
+      pointsDisplay.textContent = `Points: ${points}`;
+    }
+
+    function triggerRainbowBlast() {
+      rainbowBlast.style.transform = "translateX(0)";
+      rainbowBlast.style.opacity = "0.8";
+      setTimeout(() => {
+        rainbowBlast.style.transform = "translateX(100%)";
+        rainbowBlast.style.opacity = "0";
+      }, 50);
+    }
+
+    function spawnConfetti() {
+      for (let i = 0; i < 150; i++) {
+        confetti.push(new ConfettiParticle(canvas.width/2, canvas.height/2));
+      }
+    }
+
+    function explodeBoard() {
+      for (let fruit of fruits) {
+        fruit.exploding = true;
+        fruit.dx = (Math.random() - 0.5) * 20;
+        fruit.dy = (Math.random() - 1) * 20;
+      }
+      setTimeout(() => {
+        fruits = [];
+        spawnFruit();
+      }, 1500);
+    }
+
+    // Controls
+    document.addEventListener("keydown", (e) => {
+      // prevent page scroll on space/arrow
+      if ([" ", "ArrowLeft", "ArrowRight"].includes(e.key)) e.preventDefault();
+      if (e.key === "ArrowLeft") currentFruit.x = Math.max(currentFruit.size, currentFruit.x - 20);
+      if (e.key === "ArrowRight") currentFruit.x = Math.min(canvas.width - currentFruit.size, currentFruit.x + 20);
+      if (e.key === " ") {
+        const now = Date.now();
+        if (now - lastSpawnTime >= spawnCooldown) {
+          fruits.push(currentFruit);
+          spawnFruit();
+          lastSpawnTime = now;
+        }
+      }
+    });
+
+    // Main loop
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let fruit of fruits) fruit.update();
+      mergeFruits();
+      currentFruit.draw();
+
+      // confetti
+      confetti = confetti.filter(p => p.alpha > 0);
+      confetti.forEach(p => p.update());
+
+      requestAnimationFrame(animate);
+    }
+
+    
+    // init
+    updateScoreboard();
+    animate();
+  </script>
+</body>
+</html>

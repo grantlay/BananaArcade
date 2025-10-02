@@ -1,449 +1,651 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fruit Drop Merge Game</title>
-  <!-- 🎨 Electrolize Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Electrolize&display=swap" rel="stylesheet">
-  <style>
-    body {
-      background: linear-gradient(145deg, #f5f6fa, #dcdde1);
-      font-family: 'Electrolize', sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      overflow: hidden;
-    }
-    #container {
-      display: flex;
-      gap: 20px;
-      position: relative;
-      z-index: 1;
-    }
-    canvas {
-      background: linear-gradient(180deg, #ecf0f1, #bdc3c7);
-      border: none;
-      border-radius: 40px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2), inset 0 4px 10px rgba(255,255,255,0.4);
-    }
-    #scoreboard {
-      background: white;
-      border-radius: 20px;
-      padding: 15px;
-      width: 190px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.15);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      position: relative;
-    }
-    .scoreItem {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 16px;
-    }
-    .scoreItem img {
-      width: 24px;
-      height: 24px;
-    }
-    #points {
-      font-size: 20px;
-      font-weight: bold;
-      margin-bottom: 4px;
-      text-align: center;
-      color: #2c3e50;
-    }
-    #mergeList {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      max-height: 420px;
-      overflow: auto;
-      padding-right: 4px;
-    }
-    #rainbowBlast {
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 200%;
-      height: 100%;
-      background: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet);
-      opacity: 0.7;
-      pointer-events: none;
-      transition: transform 2s ease, opacity 2s ease;
-      transform: translateX(-100%);
-      z-index: 2;
-    }
-    #muteBtn {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
-      background: #2c3e50;
-      color: white;
-      border: none;
-      border-radius: 12px;
-      padding: 8px 12px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background 0.3s;
-    }
-    #muteBtn:hover { background: #34495e; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>iShowMerge</title>
+<link href="https://fonts.googleapis.com/css2?family=Electrolize&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg1:#0f1020; --bg2:#1b1d3a;
+    --ui-stroke:#2dd4ff; --ui-accent:#41f3ff; --ui-text:#eaf7ff;
+    --frameGlow: 0 20px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.1), inset 0 12px 26px rgba(255,255,255,.05);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; overflow:hidden;
+    font-family:'Electrolize',system-ui,Segoe UI,Inter,Arial,Helvetica,sans-serif;
+    background: radial-gradient(1200px 800px at 20% 10%, rgba(255,255,255,.06), transparent 60%),
+                linear-gradient(135deg,var(--bg1),var(--bg2));
+    color:var(--ui-text);
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  /* Floating background orbs */
+  .orb{
+    position:fixed; inset:auto;
+    width:36vmin; height:36vmin; border-radius:50%;
+    filter:blur(40px); opacity:.25; pointer-events:none; z-index:0;
+    background:conic-gradient(from 120deg,#fff 0%, var(--ui-accent) 35%, transparent 60%);
+    animation: float 12s ease-in-out infinite;
+  }
+  .orb.o1{left:8vw; top:10vh; animation-delay:-2s}
+  .orb.o2{right:12vw; bottom:12vh; animation-delay:1s}
+  @keyframes float{
+    0%,100%{transform:translateY(0) translateX(0) scale(1)}
+    50%{transform:translateY(-15px) translateX(8px) scale(1.05)}
+  }
+
+  /* Layout */
+  #container{ position:relative; z-index:1; display:flex; gap:18px; align-items:stretch }
+  .stageWrap{ position:relative }
+  canvas{
+    background: radial-gradient(140% 100% at 50% 0%, rgba(255,255,255,.10), transparent 55%),
+                linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.18));
+    border:none; border-radius:28px;
+    box-shadow: var(--frameGlow);
+    transition: box-shadow .25s ease;
+  }
+
+  /* Side panels */
+  #side{ display:flex; flex-direction:column; gap:14px; width:min(260px,34vw); }
+  .panel{
+    background:linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
+    border:1px solid color-mix(in oklab, var(--ui-stroke) 28%, transparent);
+    border-radius:18px; padding:14px 14px 12px; backdrop-filter: blur(10px);
+    box-shadow: 0 10px 22px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08);
+  }
+  .panel h3{
+    margin:2px 0 10px; font-weight:600; font-size:14px; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--ui-accent);
+    text-shadow:0 0 12px color-mix(in oklab, var(--ui-accent) 40%, transparent);
+    display:flex; align-items:center; gap:8px;
+  }
+  .chip{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:8px 10px; border-radius:12px; font-size:12px;
+    border:1px solid color-mix(in oklab, var(--ui-stroke) 35%, transparent);
+    background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+  }
+  .row{display:flex; gap:8px; flex-wrap:wrap}
+
+  #points{
+    font-size:22px; font-weight:800; text-align:center; margin-bottom:8px;
+    color:#fff; text-shadow:0 2px 10px rgba(0,0,0,.4), 0 0 16px color-mix(in oklab, var(--ui-accent) 45%, transparent);
+  }
+  #mergeList{ display:flex; flex-direction:column; gap:6px; max-height:240px; overflow:auto; padding-right:4px }
+  .scoreItem{ display:flex; align-items:center; gap:10px; font-size:14px }
+  .scoreItem img{ width:22px; height:22px; border-radius:6px }
+
+  #hud{
+    position:absolute; left:12px; top:12px; z-index:2;
+    display:flex; gap:10px; align-items:center;
+  }
+  #nextBadge{
+    padding:6px 9px; border-radius:12px; font-size:12px;
+    border:1px solid color-mix(in oklab, var(--ui-stroke) 40%, transparent);
+    background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+    display:flex; align-items:center; gap:8px;
+    box-shadow:0 6px 14px rgba(0,0,0,.25);
+  }
+  #nextBadge img{ width:18px; height:18px }
+
+  /* Overlays */
+  #rainbowBlast{ position:absolute; inset:0; pointer-events:none; border-radius:28px; overflow:hidden; }
+  #rbStripe{
+    position:absolute; inset:-10% -60%; transform:translateX(-110%);
+    background:linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet);
+    opacity:.75; filter: blur(8px) saturate(1.2);
+    height:120%; width:220%;
+    box-shadow:0 0 50px rgba(255,255,255,.6) inset;
+    transition: transform 900ms ease, opacity 900ms ease;
+  }
+
+  /* New cinematic overlays */
+  #flashOverlay, #vignette {
+    position:absolute; inset:0; pointer-events:none; border-radius:28px;
+  }
+  #flashOverlay {
+    opacity:0;
+    background: radial-gradient(120% 120% at 50% 50%, rgba(255,255,255,.95), rgba(255,255,255,.25) 40%, transparent 70%);
+    mix-blend-mode: screen;
+    transition: opacity 180ms ease;
+  }
+  #vignette {
+    opacity:.0;
+    background: radial-gradient(120% 120% at 50% 60%, transparent 55%, rgba(0,0,0,.28) 85%);
+    transition: opacity 350ms ease;
+  }
+
+  #muteBtn{
+    width:100%; margin-top:8px; cursor:pointer;
+    border:none; border-radius:12px; padding:10px 12px;
+    background:linear-gradient(180deg, color-mix(in oklab, var(--ui-accent) 35%, #000), color-mix(in oklab, var(--ui-accent) 15%, #000));
+    color:#00121a; font-weight:700; letter-spacing:.04em;
+    box-shadow:0 10px 18px rgba(0,0,0,.35), inset 0 0 22px rgba(255,255,255,.15);
+    transition:transform .08s ease, filter .2s ease;
+  }
+  #muteBtn:active{ transform:translateY(1px) }
+
+  /* Controls panel */
+  #controlsPanel .keys{ display:grid; grid-template-columns:repeat(2,auto); gap:8px 10px; align-items:center }
+  kbd{
+    min-width:28px; padding:6px 8px; border-radius:8px; font-size:12px; text-align:center;
+    border:1px solid color-mix(in oklab, var(--ui-stroke) 40%, transparent);
+    background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.15);
+    display:inline-block;
+  }
+  .toggle{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px;
+    padding:8px 10px; border-radius:12px;
+    border:1px solid color-mix(in oklab, var(--ui-stroke) 35%, transparent);
+    background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+  }
+  select, .switch{
+    border:1px solid color-mix(in oklab, var(--ui-stroke) 35%, transparent);
+    background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
+    color:var(--ui-text); border-radius:10px; padding:6px 10px; font-family:inherit;
+  }
+  .switch{ display:inline-flex; align-items:center; gap:8px; padding:6px 10px; cursor:pointer }
+  .switch input{ accent-color:var(--ui-accent) }
+
+  @media (max-width: 980px){
+    #container{ flex-direction:column; align-items:center }
+    #side{ width:min(92vw,520px); flex-direction:column; }
+    canvas{ width:min(92vw,520px); height:auto }
+  }
+</style>
 </head>
 <body>
-  <div id="rainbowBlast"></div>
+  <div class="orb o1"></div><div class="orb o2"></div>
+
   <div id="container">
-    <canvas id="gameCanvas" width="400" height="600"></canvas>
-    <div id="scoreboard">
-      <div id="points">Points: 0</div>
-      <div id="mergeList"></div>
-      <button id="muteBtn">🔊 Mute</button>
+    <div class="stageWrap">
+      <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+      <!-- Overlays above the canvas -->
+      <div id="rainbowBlast"><div id="rbStripe"></div></div>
+      <div id="flashOverlay"></div>
+      <div id="vignette"></div>
+
+      <div id="hud">
+        <div id="nextBadge" class="chip">
+          <img id="nextImg" alt="next">
+          <span>Next Speed</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="side">
+      <div class="panel" id="scoreboard">
+        <h3>Score</h3>
+        <div id="points">Points: 0</div>
+        <h3 style="margin-top:10px">Merges</h3>
+        <div id="mergeList"></div>
+        <button id="muteBtn">🔊 Mute</button>
+      </div>
+
+      <div class="panel" id="controlsPanel">
+        <h3>Controls</h3>
+        <div class="keys">
+          <div class="chip"><kbd>←</kbd> <kbd>→</kbd></div><div>Move</div>
+          <div class="chip"><kbd>Space</kbd></div><div>Drop Fruit</div>
+          <div class="chip"><kbd>M</kbd></div><div>Mute / Unmute</div>
+          <div class="chip"><kbd>H</kbd></div><div>Show / Hide Controls</div>
+        </div>
+        <div class="toggle" style="margin-top:12px">
+          <span>Theme</span>
+          <select id="themeSelect">
+            <option value="neon">Neon</option>
+            <option value="sunset">Sunset</option>
+            <option value="ocean">Ocean</option>
+          </select>
+        </div>
+        <div class="toggle">
+          <span>Visual Effects</span>
+          <label class="switch"><input id="vfxToggle" type="checkbox" checked> Enabled</label>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- ✅ GAME SCRIPT GOES LAST -->
-  <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    const scoreboard = document.getElementById("scoreboard");
-    const rainbowBlast = document.getElementById("rainbowBlast");
-    const pointsDisplay = document.getElementById("points");
-    const muteBtn = document.getElementById("muteBtn");
-    const mergeList = document.getElementById("mergeList");
+<script>
+/* ===== Elements ===== */
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const pointsDisplay = document.getElementById("points");
+const mergeList = document.getElementById("mergeList");
+const muteBtn = document.getElementById("muteBtn");
+const controlsPanel = document.getElementById("controlsPanel");
+const themeSelect = document.getElementById("themeSelect");
+const vfxToggle = document.getElementById("vfxToggle");
+const rbStripe = document.getElementById("rbStripe");
+const nextImg = document.getElementById("nextImg");
+const stage = canvas;
+const flashOverlay = document.getElementById("flashOverlay");
+const vignette = document.getElementById("vignette");
 
-    // 🎵 Background music (autoplay-safe: starts after first interaction)
-    const bgMusic = new Audio("https://github.com/TMATS8/isssmerge/raw/refs/heads/main/background.mp3");
-    bgMusic.loop = true;
-    bgMusic.volume = 0.4;
+/* ===== Audio ===== */
+const bgMusic = new Audio("https://github.com/TMATS8/isssmerge/raw/refs/heads/main/background.mp3");
+bgMusic.loop = true; bgMusic.volume = 0.4;
+const mergeSound = new Audio("https://github.com/TMATS8/isssmerge/raw/refs/heads/main/pop-402323.mp3");
+const explosionSound = new Audio("https://github.com/TMATS8/isssmerge/raw/refs/heads/main/haha.ogg");
+const discoverSounds = [
+  new Audio("https://github.com/TMATS8/isssmerge/raw/refs/heads/main/sui.ogg"),
+  new Audio("https://github.com/TMATS8/isssmerge/raw/refs/heads/main/guesswhat.ogg"),
+  new Audio("https://github.com/TMATS8/isssmerge/raw/refs/heads/main/serious.ogg")
+];
+const allSounds = [bgMusic, mergeSound, explosionSound, ...discoverSounds];
+let isMuted = false, vfxOn = true, lastDiscoverIndex = -1;
 
-    // 🔊 Sounds
-    const mergeSound = new Audio("https://github.com/TMATS8/isssmerge/raw/refs/heads/main/pop-402323.mp3");
-    const explosionSound = new Audio("https://github.com/TMATS8/isssmerge/raw/refs/heads/main/haha.ogg");
-    const discoverSounds = [
-      new Audio("https://github.com/TMATS8/isssmerge/raw/refs/heads/main/sui.ogg"),
-      new Audio("https://github.com/TMATS8/isssmerge/raw/refs/heads/main/guesswhat.ogg"),
-      new Audio("https://github.com/TMATS8/isssmerge/raw/refs/heads/main/serious.ogg")
-    ];
-    let lastDiscoverIndex = -1;
+function startMusicOnce(){
+  bgMusic.play().catch(()=>{});
+  document.removeEventListener("keydown", startMusicOnce);
+  document.removeEventListener("click", startMusicOnce);
+  document.removeEventListener("touchstart", startMusicOnce);
+}
+document.addEventListener("keydown", startMusicOnce);
+document.addEventListener("click", startMusicOnce);
+document.addEventListener("touchstart", startMusicOnce, {passive:true});
 
-    // 🎚️ Global mute toggle
-    let isMuted = false;
-    const allSounds = [bgMusic, mergeSound, explosionSound, ...discoverSounds];
+document.addEventListener("keydown", (e)=>{
+  if(e.key.toLowerCase()==='m'){ toggleMute() }
+  if(e.key.toLowerCase()==='h'){ controlsPanel.style.display = controlsPanel.style.display==='none'?'':'none' }
+});
+function toggleMute(){
+  isMuted = !isMuted; allSounds.forEach(s=>s.muted=isMuted);
+  muteBtn.textContent = isMuted ? "🔈 Unmute" : "🔊 Mute";
+}
+muteBtn.addEventListener("click", toggleMute);
 
-    muteBtn.addEventListener("click", () => {
-      isMuted = !isMuted;
-      allSounds.forEach(sound => sound.muted = isMuted);
-      muteBtn.textContent = isMuted ? "🔈 Unmute" : "🔊 Mute";
-    });
+vfxToggle.addEventListener("change", ()=>{ vfxOn = vfxToggle.checked; });
 
-    // 🎮 Start music only after first interaction
-    function startMusicOnce() {
-      bgMusic.play().catch(err => console.warn("Autoplay blocked:", err));
-      document.removeEventListener("keydown", startMusicOnce);
-      document.removeEventListener("click", startMusicOnce);
-      document.removeEventListener("touchstart", startMusicOnce, { passive: true });
+/* ===== Themes ===== */
+const THEMES = {
+  neon:   {bg1:"#0f1020", bg2:"#1b1d3a", stroke:"#2dd4ff", accent:"#41f3ff"},
+  sunset: {bg1:"#2a0f1b", bg2:"#611c28", stroke:"#ffa55c", accent:"#ffcf66"},
+  ocean:  {bg1:"#071b2d", bg2:"#0f3a4d", stroke:"#62d3ff", accent:"#a6ffe6"}
+};
+function applyTheme(name){
+  const t = THEMES[name] || THEMES.neon;
+  const r = document.documentElement.style;
+  r.setProperty('--bg1', t.bg1);
+  r.setProperty('--bg2', t.bg2);
+  r.setProperty('--ui-stroke', t.stroke);
+  r.setProperty('--ui-accent', t.accent);
+}
+themeSelect.addEventListener("change", e=>applyTheme(e.target.value));
+applyTheme('neon');
+
+/* ===== Assets ===== */
+const fruitSizes = [20, 28, 36, 46, 58, 72, 90, 110, 130, 160];
+const fruitSources = [
+  "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T205900.543.png?raw=true",
+  "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T205824.999.png?raw=true",
+  "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T205548.515.png?raw=true",
+  "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T205252.616.png?raw=true",
+  "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T205340.875.png?raw=true",
+  "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T204539.278.png?raw=true",
+  "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T205501.717.png?raw=true",
+  "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T205717.038.png?raw=true",
+  "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T213756.346.png?raw=true",
+  "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T214102.208.png?raw=true"
+];
+const fruitImages = fruitSources.map(src=>{ const i=new Image(); i.src=src; return i; });
+
+/* ===== Particles & FX ===== */
+let confetti = [], dust = [], sparkles = [];
+let shockwaves = [], debris = [], blooms = [], chromaFlashes = [];
+
+class ConfettiParticle{
+  constructor(x,y){
+    this.x=x; this.y=y; this.size=Math.random()*6+4;
+    this.color=`hsl(${Math.random()*360},100%,55%)`;
+    this.dx=(Math.random()-.5)*8; this.dy=Math.random()*-10;
+    this.rotation=Math.random()*Math.PI; this.rotationSpeed=(Math.random()-.5)*0.2;
+    this.alpha=1;
+  }
+  update(){
+    this.x+=this.dx; this.y+=this.dy; this.dy+=0.3;
+    this.rotation+=this.rotationSpeed; this.alpha-=0.01; this.draw();
+  }
+  draw(){
+    ctx.save(); ctx.translate(this.x,this.y); ctx.rotate(this.rotation); ctx.globalAlpha=this.alpha;
+    ctx.fillStyle=this.color; ctx.fillRect(-this.size/2,-this.size/2,this.size,this.size); ctx.restore();
+  }
+}
+class Dust{
+  constructor(x,y){
+    this.x=x; this.y=y; this.r=2+Math.random()*3; this.alpha=.8; this.dx=(Math.random()-.5)*2; this.dy=-Math.random()*1.5;
+  }
+  update(){
+    this.x+=this.dx; this.y+=this.dy; this.dy+=0.08; this.alpha-=0.02;
+    ctx.globalAlpha=this.alpha; ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(this.x,this.y,this.r,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
+  }
+}
+class Spark{
+  constructor(x,y){
+    this.x=x; this.y=y; this.t=0; this.max=12;
+  }
+  update(){
+    this.t++; const p=this.t/this.max; const r=8+12*(1-p);
+    ctx.beginPath(); ctx.strokeStyle=`rgba(255,255,180,${1-p})`; ctx.lineWidth=1.5;
+    ctx.arc(this.x,this.y,r,0,Math.PI*2); ctx.stroke();
+    this.dead = this.t>=this.max;
+  }
+}
+class Shockwave {
+  constructor(x, y) { this.x=x; this.y=y; this.r=8; this.max=220; this.alpha=0.9; }
+  update() {
+    this.r += 7; this.alpha -= 0.012;
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.strokeStyle = `rgba(255,255,210,${this.alpha})`;
+    ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.arc(this.x,this.y,this.r,0,Math.PI*2); ctx.stroke();
+    ctx.restore();
+    return this.alpha > 0 && this.r < this.max;
+  }
+}
+class Debris {
+  constructor(x,y,color) {
+    this.x=x; this.y=y; this.dx=(Math.random()-.5)*14; this.dy=(Math.random()*-12)-4;
+    this.rot=Math.random()*Math.PI; this.dr=(Math.random()-.5)*0.4; this.life=1; this.color=color||"#ffec99";
+    this.size=3+Math.random()*5;
+  }
+  update(){
+    this.x+=this.dx; this.y+=this.dy; this.dy+=0.7; this.rot+=this.dr; this.life-=0.02;
+    ctx.save(); ctx.translate(this.x,this.y); ctx.rotate(this.rot);
+    ctx.globalAlpha=Math.max(this.life,0);
+    ctx.fillStyle=this.color;
+    ctx.globalCompositeOperation="screen";
+    ctx.fillRect(-this.size/2,-this.size/2,this.size,this.size);
+    ctx.restore();
+    return this.life>0;
+  }
+}
+class Bloom {
+  constructor(x,y,baseR=40,strength=1){
+    this.x=x; this.y=y; this.t=0; this.baseR=baseR; this.strength=strength;
+  }
+  update(){
+    this.t++;
+    const k = Math.max(0, 1 - this.t/32) * this.strength;
+    const layers = 4;
+    ctx.save();
+    ctx.globalCompositeOperation="screen";
+    for(let i=0;i<layers;i++){
+      const r = this.baseR*(1+i*0.9) + this.t*1.6;
+      const a = k * (0.45 - i*0.08);
+      const grad = ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,r);
+      grad.addColorStop(0, `rgba(255,255,200,${a})`);
+      grad.addColorStop(1, `rgba(255,255,200,0)`);
+      ctx.fillStyle=grad;
+      ctx.beginPath(); ctx.arc(this.x,this.y,r,0,Math.PI*2); ctx.fill();
     }
-    document.addEventListener("keydown", startMusicOnce);
-    document.addEventListener("click", startMusicOnce);
-    document.addEventListener("touchstart", startMusicOnce, { passive: true });
+    ctx.restore();
+    return this.t<34;
+  }
+}
+class ChromaFlash {
+  constructor(){ this.t=0; this.max=10; }
+  update(){
+    this.t++;
+    const p = 1 - this.t/this.max;
+    ctx.save(); ctx.globalCompositeOperation="screen"; ctx.globalAlpha = p*0.25;
+    ctx.fillStyle="rgba(0,150,255,1)"; ctx.fillRect(0,0,6,canvas.height);
+    ctx.fillStyle="rgba(255,0,120,1)"; ctx.fillRect(canvas.width-6,0,6,canvas.height);
+    ctx.restore();
+    return this.t<this.max;
+  }
+}
+function spawnSparklesAt(x,y){
+  if(!vfxOn) return;
+  for(let i=0;i<3;i++) sparkles.push(new Spark(x,y));
+}
+function spawnConfettiBurst(){
+  if(!vfxOn) return;
+  for(let i=0;i<120;i++) confetti.push(new ConfettiParticle(canvas.width/2, canvas.height*0.45));
+}
+function burstVFX(x,y){
+  if(!vfxOn) return;
+  shockwaves.push(new Shockwave(x,y));
+  blooms.push(new Bloom(x,y,60,1.2));
+  for(let i=0;i<24;i++) debris.push(new Debris(x,y,`hsl(${Math.random()*360},100%,70%)`));
+  for(let i=0;i<20;i++) confetti.push(new ConfettiParticle(x,y));
+  for(let i=0;i<6;i++) sparkles.push(new Spark(x,y));
+  chromaFlashes.push(new ChromaFlash());
+  flashScreen(); vignettePulse();
+}
 
-    // ========= Confetti =========
-    let confetti = [];
-    class ConfettiParticle {
-      constructor(x, y) {
-        this.x = x;
-        this.y = y;
-        this.size = Math.random() * 6 + 4;
-        this.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
-        this.dx = (Math.random() - 0.5) * 8;
-        this.dy = Math.random() * -10;
-        this.rotation = Math.random() * Math.PI;
-        this.rotationSpeed = (Math.random() - 0.5) * 0.2;
-        this.alpha = 1;
-      }
-      update() {
-        this.x += this.dx;
-        this.y += this.dy;
-        this.dy += 0.3;
-        this.rotation += this.rotationSpeed;
-        this.alpha -= 0.01;
-        this.draw();
-      }
-      draw() {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        ctx.rotate(this.rotation);
-        ctx.globalAlpha = this.alpha;
-        ctx.fillStyle = this.color;
-        ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
-        ctx.restore();
-      }
+/* Flash & vignette controls */
+function flashScreen(){
+  if(!vfxOn) return;
+  flashOverlay.style.opacity = "1";
+  requestAnimationFrame(()=>flashOverlay.style.opacity="0");
+}
+function vignettePulse(){
+  if(!vfxOn) return;
+  vignette.style.opacity = ".55";
+  setTimeout(()=>{ vignette.style.opacity = ".0"; }, 220);
+}
+
+/* ===== Game Objects ===== */
+class Fruit{
+  constructor(x,y,level){
+    this.x=x; this.y=y; this.level=level; this.size=fruitSizes[level];
+    this.dy=0; this.dx=0; this.rotation=0; this.animationScale=1; this.lightEffect=0;
+    this.alpha=1; this.exploding=false; this.trail=[];
+  }
+  draw(){
+    // merge/charge glow
+    if(this.lightEffect>0 && vfxOn){
+      const g=this.lightEffect;
+      const grad=ctx.createRadialGradient(this.x,this.y,this.size*0.9,this.x,this.y,this.size*1.6);
+      grad.addColorStop(0,`rgba(255,255,180,${0.25*g})`);
+      grad.addColorStop(1,`rgba(255,255,180,0)`);
+      ctx.fillStyle=grad; ctx.beginPath(); ctx.arc(this.x,this.y,this.size*1.7,0,Math.PI*2); ctx.fill();
+      this.lightEffect-=0.02;
     }
 
-    // ========= Fruits =========
-    const fruitImages = [];
-    const fruitSizes = [20, 28, 36, 46, 58, 72, 90, 110, 130, 160];
-    const fruitSources = [
-      "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T205900.543.png?raw=true",
-      "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T205824.999.png?raw=true",
-      "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T205548.515.png?raw=true",
-      "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T205252.616.png?raw=true",
-      "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T205340.875.png?raw=true",
-      "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T204539.278.png?raw=true",
-      "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T205501.717.png?raw=true",
-      "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T205717.038.png?raw=true",
-      "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T213756.346.png?raw=true",
-      "https://github.com/TMATS8/isssmerge/blob/main/New%20Project%20-%202025-09-25T214102.208.png?raw=true"
-    ];
-    fruitSources.forEach((src, i) => {
-      const img = new Image();
-      img.src = src;
-      fruitImages[i] = img;
-    });
-
-    class Fruit {
-      constructor(x, y, level) {
-        this.x = x;
-        this.y = y;
-        this.level = level;
-        this.size = fruitSizes[level];
-        this.dy = 0;
-        this.dx = 0;
-        this.rotation = 0;
-        this.animationScale = 1;
-        this.lightEffect = 0;
-        this.alpha = 1;
-        this.exploding = false;
+    // motion trail
+    if(vfxOn){
+      this.trail.push({x:this.x,y:this.y,a:.18, r:this.size*0.55});
+      if(this.trail.length>8) this.trail.shift();
+      for(const t of this.trail){
+        ctx.beginPath(); ctx.globalAlpha=t.a; ctx.fillStyle="rgba(255,255,255,.06)";
+        ctx.arc(t.x,t.y,t.r,0,Math.PI*2); ctx.fill(); t.a-=0.03;
       }
-      draw() {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        ctx.rotate(this.rotation);
-        ctx.scale(this.animationScale, this.animationScale);
-        ctx.globalAlpha = this.alpha;
+      ctx.globalAlpha=1;
+    }
 
-        if (this.lightEffect > 0) {
-          ctx.beginPath();
-          ctx.arc(0, 0, this.size * 1.5, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(255, 255, 0, ${this.lightEffect})`;
-          ctx.lineWidth = 5;
-          ctx.stroke();
-          this.lightEffect -= 0.02;
-        }
+    // fruit sprite
+    ctx.save();
+    ctx.translate(this.x,this.y);
+    ctx.rotate(this.rotation);
+    ctx.scale(this.animationScale,this.animationScale);
+    ctx.globalAlpha=this.alpha;
+    const img = fruitImages[this.level];
+    if(img && img.complete){
+      ctx.drawImage(img, -this.size, -this.size, this.size*2, this.size*2);
+    }
+    ctx.restore();
 
-        const img = fruitImages[this.level];
-        if (img && img.complete) {
-          ctx.drawImage(img, -this.size, -this.size, this.size * 2, this.size * 2);
-        }
-        ctx.restore();
+    if(this.animationScale>1){ this.animationScale-=0.05; if(this.animationScale<1) this.animationScale=1; }
+  }
+  update(){
+    if(!this.exploding){
+      const prevDy = this.dy;
+      this.dy+=0.8; this.y+=this.dy; this.x+=this.dx; this.rotation+=this.dx/this.size;
 
-        if (this.animationScale > 1) {
-          this.animationScale -= 0.05;
-          if (this.animationScale < 1) this.animationScale = 1;
+      // world bounds
+      const floor = canvas.height - this.size;
+      if(this.y>floor){
+        this.y=floor;
+        if(prevDy>2){
+          const n = Math.min(16, 6 + Math.floor(prevDy*2));
+          for(let i=0;i<n;i++)
+            dust.push(new Dust(this.x + (Math.random()-0.5)*this.size*1.2, this.y+this.size-1));
+          blooms.push(new Bloom(this.x, this.y+this.size*0.4, 26, 0.6));
         }
+        this.dy=0; this.dx*=0.985;
       }
-      update() {
-        if (!this.exploding) {
-          this.dy += 0.8;
-          this.y += this.dy;
-          this.x += this.dx;
-          this.rotation += this.dx / this.size;
+      if(this.x-this.size<0){ this.x=this.size; this.dx*=-0.5; }
+      if(this.x+this.size>canvas.width){ this.x=canvas.width-this.size; this.dx*=-0.5; }
 
-          if (this.y + this.size > canvas.height) {
-            this.y = canvas.height - this.size;
-            this.dy = 0;
+      // soft collision with horizontal favor near floor (prevents upward drift)
+      for(const other of fruits){
+        if(other!==this && !other.exploding){
+          const dx=this.x-other.x, dy=this.y-other.y, dist=Math.hypot(dx,dy), min=this.size+other.size;
+          if(dist<min){
+            const ang=Math.atan2(dy,dx), overlap=min-dist;
+            let mx=Math.cos(ang)*(overlap/2), my=Math.sin(ang)*(overlap/2);
+            const nearFloor = (this.y>canvas.height - this.size - 6) || (other.y>canvas.height - other.size - 6);
+            if(nearFloor){ my*=0.2; }
+            this.x+=mx; this.y+=my; other.x-=mx; other.y-=my;
+            const impulse=0.3;
+            this.dx+=Math.cos(ang)*impulse; other.dx-=Math.cos(ang)*impulse;
+            this.dy*=0.7; other.dy*=0.7;
           }
-          if (this.x - this.size < 0) { this.x = this.size; this.dx *= -0.5; }
-          if (this.x + this.size > canvas.width) { this.x = canvas.width - this.size; this.dx *= -0.5; }
-
-          // ✅ Fruit-to-fruit collisions
-          for (let other of fruits) {
-            if (other !== this && !other.exploding) {
-              let dx = this.x - other.x;
-              let dy = this.y - other.y;
-              let dist = Math.sqrt(dx * dx + dy * dy);
-              let minDist = this.size + other.size;
-              if (dist < minDist) {
-                let angle = Math.atan2(dy, dx);
-                let overlap = minDist - dist;
-                let moveX = Math.cos(angle) * (overlap / 2);
-                let moveY = Math.sin(angle) * (overlap / 2);
-
-                this.x += moveX;
-                this.y += moveY;
-                other.x -= moveX;
-                other.y -= moveY;
-
-                this.dx += Math.cos(angle) * 0.3;
-                other.dx -= Math.cos(angle) * 0.3;
-
-                this.dy *= 0.7;
-                other.dy *= 0.7;
-              }
-            }
-          }
-        } else {
-          // 🔴 Explosion mode
-          this.x += this.dx;
-          this.y += this.dy;
-          this.dy += 0.5;
-          this.rotation += 0.2;
-          this.alpha -= 0.02;
-        }
-        this.draw();
-      }
-    }
-
-    // ========= Game State =========
-    let fruits = [];
-    let currentFruit = new Fruit(canvas.width / 2, 50, 0);
-    let mergeCounts = new Array(fruitSizes.length).fill(0);
-    let lastSpawnTime = 0;
-    const spawnCooldown = 500;
-    let points = 0;
-    let discoveredLevels = new Set();
-
-    function spawnFruit() {
-      currentFruit = new Fruit(canvas.width / 2, 50, Math.floor(Math.random() * 3));
-    }
-
-    function mergeFruits() {
-      for (let i = 0; i < fruits.length; i++) {
-        for (let j = i + 1; j < fruits.length; j++) {
-          let f1 = fruits[i];
-          let f2 = fruits[j];
-          let dx = f1.x - f2.x;
-          let dy = f1.y - f2.y;
-          let dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < f1.size + f2.size && f1.level === f2.level) {
-            fruits.splice(j, 1);
-            f1.level = Math.min(fruitSizes.length - 1, f1.level + 1);
-            f1.size = fruitSizes[f1.level];
-            f1.animationScale = 1.5;
-            mergeCounts[f1.level]++;
-
-            // SFX
-            mergeSound.currentTime = 0;
-            mergeSound.play().catch(()=>{});
-
-            // First-time discovery SFX + light ring
-            if (!discoveredLevels.has(f1.level)) {
-              discoveredLevels.add(f1.level);
-              let randIndex;
-              do { randIndex = Math.floor(Math.random() * discoverSounds.length); }
-              while (randIndex === lastDiscoverIndex);
-              lastDiscoverIndex = randIndex;
-              const randSound = discoverSounds[randIndex];
-              randSound.currentTime = 0;
-              randSound.play().catch(()=>{});
-              f1.lightEffect = 1;
-            }
-
-            // Max level → blast + confetti + points + reset
-            if (f1.level === fruitSizes.length - 1) {
-              triggerRainbowBlast();
-              explosionSound.currentTime = 0;
-              explosionSound.play().catch(()=>{});
-              spawnConfetti();
-              points += 100;
-              updatePoints();
-              explodeBoard();
-            }
-
-            updateScoreboard();
-            return; // handle one merge per frame to avoid chain issues
-          }
         }
       }
+    }else{
+      // explosion anim
+      this.x+=this.dx; this.y+=this.dy; this.dy+=0.5; this.rotation+=0.2; this.alpha-=0.02;
     }
+    this.draw();
+  }
+}
 
-    function updateScoreboard() {
-      // Only update the list section (don’t overwrite the mute button/points)
-      mergeList.innerHTML = "";
-      mergeCounts.forEach((count, i) => {
-        if (count > 0) {
-          const div = document.createElement("div");
-          div.className = "scoreItem";
-          const img = document.createElement("img");
-          img.src = fruitSources[i];
-          img.alt = "fruit";
-          div.appendChild(img);
-          div.appendChild(document.createTextNode("x " + count));
-          mergeList.appendChild(div);
+/* ===== State ===== */
+let fruits = [], mergeCounts = new Array(fruitSizes.length).fill(0), discoveredLevels = new Set();
+let points = 0, lastSpawn = 0, spawnCooldown = 500;
+let currentFruit = new Fruit(canvas.width/2, 60, 0);
+let nextLevel = 0;
+function pickNextLevel(){ nextLevel = Math.floor(Math.random()*3); nextImg.src = fruitSources[nextLevel]; }
+pickNextLevel();
+function spawnFruit(){ currentFruit = new Fruit(canvas.width/2, 60, nextLevel); pickNextLevel(); }
+
+/* ===== UI helpers ===== */
+function updatePoints(){
+  pointsDisplay.textContent = `Points: ${points}`;
+  const base = getComputedStyle(stage).getPropertyValue('--frameGlow');
+  const glow = `0 0 40px color-mix(in oklab, var(--ui-accent) 80%, transparent), ${base}`;
+  stage.style.boxShadow = glow;
+  setTimeout(()=>{ stage.style.boxShadow = base; }, 220);
+}
+function updateScoreboard(){
+  mergeList.innerHTML="";
+  mergeCounts.forEach((count,i)=>{
+    if(count>0){
+      const div=document.createElement("div"); div.className="scoreItem";
+      const img=document.createElement("img"); img.src=fruitSources[i];
+      div.appendChild(img); div.appendChild(document.createTextNode("x "+count));
+      mergeList.appendChild(div);
+    }
+  });
+}
+function doRainbowBlast(){
+  if(!vfxOn) return;
+  rbStripe.style.transform="translateX(0%)";
+  setTimeout(()=>{ rbStripe.style.transform="translateX(120%)"; }, 40);
+}
+function addPoints(n){ points += n; updatePoints(); }
+
+/* ===== Merging ===== */
+function mergeFruits(){
+  for(let i=0;i<fruits.length;i++){
+    for(let j=i+1;j<fruits.length;j++){
+      const f1=fruits[i], f2=fruits[j];
+      const dx=f1.x-f2.x, dy=f1.y-f2.y, dist=Math.hypot(dx,dy);
+      if(dist < f1.size + f2.size && f1.level===f2.level){
+        fruits.splice(j,1);
+
+        const centerX = (f1.x+f2.x)/2, centerY = (f1.y+f2.y)/2;
+        f1.level = Math.min(fruitSizes.length-1, f1.level+1);
+        f1.size = fruitSizes[f1.level];
+        f1.x = centerX; f1.y = Math.min(centerY, canvas.height - f1.size);
+        f1.dy = Math.min(f1.dy, 1.2);
+        f1.dx *= 0.6;
+        f1.animationScale=1.5; f1.lightEffect=1;
+        mergeCounts[f1.level]++;
+
+        // Merge VFX/SFX
+        blooms.push(new Bloom(f1.x, f1.y, 50, 1.0));
+        spawnSparklesAt(f1.x, f1.y);
+        flashScreen();
+        mergeSound.currentTime=0; mergeSound.play().catch(()=>{});
+
+        if(!discoveredLevels.has(f1.level)){
+          discoveredLevels.add(f1.level);
+          let r; do{ r=Math.floor(Math.random()*discoverSounds.length) } while(r===lastDiscoverIndex);
+          lastDiscoverIndex=r; const s=discoverSounds[r]; s.currentTime=0; s.play().catch(()=>{});
         }
-      });
-    }
 
-    function updatePoints() {
-      pointsDisplay.textContent = `Points: ${points}`;
-    }
+        if(f1.level===fruitSizes.length-1){
+          doRainbowBlast();
+          explosionSound.currentTime=0; explosionSound.play().catch(()=>{});
+          spawnConfettiBurst();
+          burstVFX(f1.x, f1.y);
+          addPoints(100);
 
-    function triggerRainbowBlast() {
-      rainbowBlast.style.transform = "translateX(0)";
-      rainbowBlast.style.opacity = "0.8";
-      setTimeout(() => {
-        rainbowBlast.style.transform = "translateX(100%)";
-        rainbowBlast.style.opacity = "0";
-      }, 50);
-    }
-
-    function spawnConfetti() {
-      for (let i = 0; i < 150; i++) {
-        confetti.push(new ConfettiParticle(canvas.width/2, canvas.height/2));
-      }
-    }
-
-    function explodeBoard() {
-      for (let fruit of fruits) {
-        fruit.exploding = true;
-        fruit.dx = (Math.random() - 0.5) * 20;
-        fruit.dy = (Math.random() - 1) * 20;
-      }
-      setTimeout(() => {
-        fruits = [];
-        spawnFruit();
-      }, 1500);
-    }
-
-    // Controls
-    document.addEventListener("keydown", (e) => {
-      // prevent page scroll on space/arrow
-      if ([" ", "ArrowLeft", "ArrowRight"].includes(e.key)) e.preventDefault();
-      if (e.key === "ArrowLeft") currentFruit.x = Math.max(currentFruit.size, currentFruit.x - 20);
-      if (e.key === "ArrowRight") currentFruit.x = Math.min(canvas.width - currentFruit.size, currentFruit.x + 20);
-      if (e.key === " ") {
-        const now = Date.now();
-        if (now - lastSpawnTime >= spawnCooldown) {
-          fruits.push(currentFruit);
-          spawnFruit();
-          lastSpawnTime = now;
+          // Outward fling without moving the frame
+          for(const f of fruits){ f.exploding=true; f.dx=(Math.random()-.5)*20; f.dy=(Math.random()-1)*20; }
+          setTimeout(()=>{ fruits=[]; spawnFruit(); }, 1200);
         }
+
+        updateScoreboard();
+        return;
       }
-    });
-
-    // Main loop
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      for (let fruit of fruits) fruit.update();
-      mergeFruits();
-      currentFruit.draw();
-
-      // confetti
-      confetti = confetti.filter(p => p.alpha > 0);
-      confetti.forEach(p => p.update());
-
-      requestAnimationFrame(animate);
     }
+  }
+}
 
-    
-    // init
-    updateScoreboard();
-    animate();
-  </script>
+/* ===== Input ===== */
+document.addEventListener("keydown", (e)=>{
+  if([" ","ArrowLeft","ArrowRight"].includes(e.key)) e.preventDefault();
+  if(e.key==="ArrowLeft")  currentFruit.x = Math.max(currentFruit.size, currentFruit.x-20);
+  if(e.key==="ArrowRight") currentFruit.x = Math.min(canvas.width-currentFruit.size, currentFruit.x+20);
+  if(e.key===" "){
+    const now=Date.now();
+    if(now-lastSpawn>=spawnCooldown){
+      fruits.push(currentFruit); spawnFruit(); lastSpawn=now;
+    }
+  }
+});
+
+/* ===== Loop ===== */
+function animate(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // faint floor line for stability reference
+  ctx.globalAlpha=.07; ctx.fillStyle="#fff";
+  ctx.fillRect(0, canvas.height-2, canvas.width, 2);
+  ctx.globalAlpha=1;
+
+  for(const f of fruits) f.update();
+  mergeFruits();
+  currentFruit.draw();
+
+  // particles
+  confetti = confetti.filter(p=>p.alpha>0);   confetti.forEach(p=>p.update());
+  dust     = dust.filter(p=>p.alpha>0);       dust.forEach(p=>p.update());
+  sparkles = sparkles.filter(s=>!s.dead);     sparkles.forEach(s=>s.update());
+
+  // new systems
+  shockwaves    = shockwaves.filter(s=>s.update());
+  debris        = debris.filter(d=>d.update());
+  blooms        = blooms.filter(b=>b.update());
+  chromaFlashes = chromaFlashes.filter(c=>c.update());
+
+  requestAnimationFrame(animate);
+}
+
+/* ===== Init ===== */
+function updateScoreAndRun(){ updateScoreboard(); updatePoints(); animate(); }
+updateScoreAndRun();
+</script>
 </body>
 </html>

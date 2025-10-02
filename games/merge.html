@@ -604,17 +604,68 @@ function mergeFruits(){
 }
 
 /* ===== Input ===== */
-document.addEventListener("keydown", (e)=>{
-  if([" ","ArrowLeft","ArrowRight"].includes(e.key)) e.preventDefault();
-  if(e.key==="ArrowLeft")  currentFruit.x = Math.max(currentFruit.size, currentFruit.x-20);
-  if(e.key==="ArrowRight") currentFruit.x = Math.min(canvas.width-currentFruit.size, currentFruit.x+20);
-  if(e.key===" "){
-    const now=Date.now();
-    if(now-lastSpawn>=spawnCooldown){
-      fruits.push(currentFruit); spawnFruit(); lastSpawn=now;
-    }
+function clampX(x, radius){
+  return Math.max(radius, Math.min(canvas.width - radius, x));
+}
+
+// Translate screen coords → canvas coords (handles CSS scaling)
+function canvasXFromClient(clientX){
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  return (clientX - rect.left) * scaleX;
+}
+
+// Aim at mouse/touch X
+function aimAtClientX(clientX){
+  const x = canvasXFromClient(clientX);
+  currentFruit.x = clampX(x, currentFruit.size);
+}
+
+// Drop helper
+function tryDrop(){
+  const now = Date.now();
+  if(now - lastSpawn >= spawnCooldown){
+    fruits.push(currentFruit);
+    spawnFruit();
+    lastSpawn = now;
+  }
+}
+
+// Mouse move to aim
+document.addEventListener("mousemove", (e) => {
+  aimAtClientX(e.clientX);
+});
+
+// Left click to drop
+document.addEventListener("click", (e) => {
+  // ignore clicks outside the canvas area
+  const rect = canvas.getBoundingClientRect();
+  if(e.clientX >= rect.left && e.clientX <= rect.right &&
+     e.clientY >= rect.top  && e.clientY <= rect.bottom){
+    tryDrop();
   }
 });
+
+// Touch support: drag to aim, tap to drop
+document.addEventListener("touchmove", (e) => {
+  if(e.touches && e.touches[0]) aimAtClientX(e.touches[0].clientX);
+}, { passive: true });
+
+document.addEventListener("touchstart", (e) => {
+  if(e.touches && e.touches[0]) aimAtClientX(e.touches[0].clientX);
+}, { passive: true });
+
+document.addEventListener("touchend", (e) => {
+  tryDrop();
+}, { passive: true });
+
+// Keyboard: Space to drop; M to mute; H to toggle Controls
+document.addEventListener("keydown", (e)=>{
+  if(e.key === " "){ e.preventDefault(); tryDrop(); }
+  if(e.key.toLowerCase() === "m"){ toggleMute(); }
+  if(e.key.toLowerCase() === "h"){ controlsPanel.style.display = controlsPanel.style.display==='none' ? '' : 'none'; }
+});
+
 
 /* ===== Loop ===== */
 function animate(){

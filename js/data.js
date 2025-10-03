@@ -108,16 +108,16 @@ const GAMES = [
   {
     id: "ishowmerge",
     origin: "bread",
-    name: "I Show Merge (Banana Bread)",
+    name: "I Show Merge",
     file: "games/merge.html",
-    img: "assets/ism.jpg",
+    img: "assets/IShowMerge.png",
     desc: "Combine fruits and unlock huge combos in this Banana Bread original.",
     tags: ["Merge", "Arcade"],
     categories: ["Puzzle", "Casual"],
     rating: 4.7,
     plays: 2_410,
     new: true,
-    creator: "Banana Studios (Banana Bread)"
+    creator: "Banana Bread"
   },
 
   // ---- Puzzle hits / brainy ----
